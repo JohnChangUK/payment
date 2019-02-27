@@ -34,4 +34,6 @@ message TransferRequest {
     bytes value = 3;
 }
 
-
+message Balance {
+    string account_id = 2;
+}

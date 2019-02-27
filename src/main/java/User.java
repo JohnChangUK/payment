@@ -1,5 +1,6 @@
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
+import com.johnchang.Balance;
 import com.johnchang.Currency;
 import com.johnchang.Payment;
 import com.johnchang.TransactionResponse;
@@ -30,21 +31,26 @@ public class User<T extends PaymentProxy> {
 
     void createContractWithPayment(User user) {
         if (user.currency.equals(Currency.POUNDS) && user.amount >= 100) {
+            long userOriginalAmount = user.getAmount();
+            user.setAmount(userOriginalAmount -= 100);
+
             Payment payment = createPayment(user.amount, user.currency, "1000",
                     "James's contract", 6, "ERC20");
 
             Message transactionResponse = proxy.createContractFromPayment(payment);
             printContractCreationData((TransactionResponse) transactionResponse);
             TransferRequest request = createTransferRequest("0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D", "100");
-            TransactionReceipt receipt = proxy.executeTransferRequest(request);
+            TransactionReceipt receipt = proxy.executeTransferRequest(request);;
 
-            String transactionHash = receipt.getTransactionHash();
-            String blockHash = receipt.getBlockHash();
-            BigInteger gasUsed = receipt.getGasUsed();
-
-            TransactionData transactionData = creationTransactionData(transactionHash,
-                    blockHash, gasUsed);
+            TransactionData transactionData = creationTransactionData(
+                    receipt.getTransactionHash(), receipt.getBlockHash(), receipt.getGasUsed());
             System.out.println(transactionData);
+
+            Balance balance = Balance.newBuilder()
+                    .setAccountId("0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D")
+                    .build();
+            BigInteger totalBalance = proxy.balanceRequest(balance);
+            System.out.println("Total balance: " + totalBalance);
         }
     }
 
@@ -80,5 +86,13 @@ public class User<T extends PaymentProxy> {
                 .setDecimalUnits(decimalUnits)
                 .setSymbol(symbol)
                 .build();
+    }
+
+    public long getAmount() {
+        return amount;
+    }
+
+    public void setAmount(long amount) {
+        this.amount = amount;
     }
 }
