@@ -27,7 +27,6 @@ public class ERC20PaymentProxy implements PaymentProxy {
         web3j = Web3j.build(new HttpService("http://127.0.0.1:8545"));
         // Address: 0x6c658dea826b8f8085fc59b5bd96477c52a6a675
         credentials = WalletUtils.loadBip39Credentials("test", "test");
-        System.out.println(credentials.getAddress());
     }
 
     public Message createContractFromPayment(Payment payment) {
