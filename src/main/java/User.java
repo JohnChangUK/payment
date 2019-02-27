@@ -4,13 +4,14 @@ import com.johnchang.Currency;
 import com.johnchang.Payment;
 import com.johnchang.TransactionResponse;
 import com.johnchang.TransferRequest;
-import model.ContractData;
+import model.ContractCreationData;
+import model.TransactionData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import proxy.PaymentProxy;
 
-import java.util.concurrent.TimeUnit;
+import java.math.BigInteger;
 
 public class User<T extends PaymentProxy> {
 
@@ -33,26 +34,38 @@ public class User<T extends PaymentProxy> {
                     "James's contract", 6, "ERC20");
 
             Message transactionResponse = proxy.createContractFromPayment(payment);
-            printContractData((TransactionResponse) transactionResponse);
-            TransferRequest request = createTransferRequest("100");
+            printContractCreationData((TransactionResponse) transactionResponse);
+            TransferRequest request = createTransferRequest("0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D", "100");
             TransactionReceipt receipt = proxy.executeTransferRequest(request);
-            System.out.println(receipt);
+
+            String transactionHash = receipt.getTransactionHash();
+            String blockHash = receipt.getBlockHash();
+            BigInteger gasUsed = receipt.getGasUsed();
+
+            TransactionData transactionData = creationTransactionData(transactionHash,
+                    blockHash, gasUsed);
+            System.out.println(transactionData);
         }
     }
 
-    private void printContractData(TransactionResponse transactionResponse) {
+    private TransactionData creationTransactionData(
+            String transactionHash, String blockHash, BigInteger gasUsed) {
+        return new TransactionData(transactionHash, blockHash, gasUsed);
+    }
+
+    private void printContractCreationData(TransactionResponse transactionResponse) {
         contractAddress = transactionResponse.getContractAddress();
         String blockNumber = transactionResponse.getBlockNumber();
         String transactionHash = transactionResponse.getTransactionHash();
 
-        ContractData contractData = new ContractData(contractAddress, blockNumber, transactionHash);
-        System.out.println(contractData);
+        ContractCreationData contractCreationData = new ContractCreationData(contractAddress, blockNumber, transactionHash);
+        System.out.println(contractCreationData);
     }
 
-    private TransferRequest createTransferRequest(String value) {
+    private TransferRequest createTransferRequest(String accountId, String value) {
         return TransferRequest.newBuilder()
                 .setContractAddress(contractAddress)
-                .setToAccountId("0x")
+                .setToAccountId(accountId)
                 .setValue(ByteString.copyFromUtf8(value))
                 .build();
     }
@@ -67,17 +80,5 @@ public class User<T extends PaymentProxy> {
                 .setDecimalUnits(decimalUnits)
                 .setSymbol(symbol)
                 .build();
-    }
-
-    private void waitForContractAddress() {
-        while (contractAddress == null) {
-            try {
-                log.info("Waiting for the contract address");
-                TimeUnit.SECONDS.sleep(3);
-            } catch (InterruptedException e) {
-                throw new IllegalStateException("Could not block for contract address", e);
-            }
-        }
-        log.info("Received contract address: " + contractAddress);
     }
 }
