@@ -1,3 +1,5 @@
+package model;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import com.johnchang.Balance;
@@ -5,52 +7,59 @@ import com.johnchang.Currency;
 import com.johnchang.Payment;
 import com.johnchang.TransactionResponse;
 import com.johnchang.TransferRequest;
-import model.ContractCreationData;
-import model.TransactionData;
+import exception.NotEnoughFundsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import proxy.PaymentProxy;
+import proxy.Proxy;
 
 import java.math.BigInteger;
 
-public class User<T extends PaymentProxy> {
+public class User<T extends Proxy> {
 
     public static final Logger log = LoggerFactory.getLogger(User.class);
 
+    private String name;
     private long amount;
     private Currency currency;
     private T proxy;
     private String contractAddress;
 
-    User(long amount, Currency currency, T proxy) {
+    public User(String name, long amount, Currency currency, T proxy) {
+        this.name = name;
         this.amount = amount;
         this.currency = currency;
         this.proxy = proxy;
     }
 
-    void createContractWithPayment(User user) {
-        if (user.currency.equals(Currency.POUNDS) && user.amount >= 100) {
-            long userOriginalAmount = user.getAmount();
-            user.setAmount(userOriginalAmount -= 100);
+    public void createContractWithPayment(User user) {
+        try {
+            if (proxy.checkIfUserHasEnoughFunds(user)) {
+                deductUserAccountBalance(user);
 
-            Payment payment = createPayment(user.amount, user.currency, "1000",
-                    "James's contract", 6, "ERC20");
+                Payment payment = createPayment(user.amount, user.currency, "1000000",
+                        "James's contract", 6, "WPAY");
 
-            Message transactionResponse = proxy.createContractFromPayment(payment);
-            printContractCreationData((TransactionResponse) transactionResponse);
-            TransferRequest request = createTransferRequest("0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D", "100");
-            TransactionReceipt receipt = proxy.executeTransferRequest(request);;
+                Message transactionResponse = proxy.createContractFromPayment(payment);
+                printContractCreationData((TransactionResponse) transactionResponse);
 
-            TransactionData transactionData = creationTransactionData(
-                    receipt.getTransactionHash(), receipt.getBlockHash(), receipt.getGasUsed());
-            System.out.println(transactionData);
+                TransferRequest request = createTransferRequest(
+                        "0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D", "10000");
+                TransactionReceipt receipt = proxy.executeTransferRequest(request);
+                TransactionData transactionData = creationTransactionData(
+                        receipt.getTransactionHash(), receipt.getBlockHash(), receipt.getGasUsed());
+                System.out.println(transactionData);
 
-            Balance balance = Balance.newBuilder()
-                    .setAccountId("0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D")
-                    .build();
-            BigInteger totalBalance = proxy.balanceRequest(balance);
-            System.out.println("Total balance: " + totalBalance);
+                Balance balance = Balance.newBuilder()
+                        .setContractAddress(contractAddress)
+                        .setAccountId("0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D")
+                        .build();
+                BigInteger totalBalance = proxy.balanceRequest(balance);
+                System.out.println("Total balance: " + totalBalance);
+            }
+        } catch (NotEnoughFundsException e) {
+            System.out.println(e);
+            log.error("Error: ", e);
         }
     }
 
@@ -88,11 +97,24 @@ public class User<T extends PaymentProxy> {
                 .build();
     }
 
+    private void deductUserAccountBalance(User user) {
+        long originalUserAccountBalance = user.getAmount();
+        user.setAmount(originalUserAccountBalance -= 100);
+    }
+
+    public String getName() {
+        return name;
+    }
+
     public long getAmount() {
         return amount;
     }
 
     public void setAmount(long amount) {
         this.amount = amount;
+    }
+
+    public Currency getCurrency() {
+        return currency;
     }
 }

@@ -1,10 +1,11 @@
 import com.johnchang.Currency;
-import proxy.ERC20PaymentProxy;
+import model.User;
+import proxy.PaymentProxy;
 
 public class Main {
 
     public static void main(String[] args) {
-        User user = new User<>(1000, Currency.POUNDS, new ERC20PaymentProxy());
+        User user = new User<>("James", 1000, Currency.POUNDS, new PaymentProxy());
 
         user.createContractWithPayment(user);
     }
