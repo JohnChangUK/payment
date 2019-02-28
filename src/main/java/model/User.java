@@ -15,22 +15,25 @@ import proxy.Proxy;
 
 import java.math.BigInteger;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class User<T extends Proxy> {
 
-    public static final Logger log = LoggerFactory.getLogger(User.class);
+    private static final Logger log = LoggerFactory.getLogger(User.class);
 
     private String name;
     private long amount;
     private Currency currency;
     private T proxy;
     private String contractAddress;
+    private Consumer<Object> printFunctionResponse;
 
     public User(String name, long amount, Currency currency, T proxy) {
         this.name = name;
         this.amount = amount;
         this.currency = currency;
         this.proxy = proxy;
+        printFunctionResponse = this::printFunctionResponse;
     }
 
     public void createContractWithPayment(User user) {
@@ -46,23 +49,36 @@ public class User<T extends Proxy> {
 
                 TransferRequest request = createTransferRequest(
                         "0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D", "10000");
-                TransactionReceipt receipt = proxy.executeTransferRequest(request);
 
-                TransactionData transactionData = creationTransactionData(
-                        receipt.getTransactionHash(), receipt.getBlockHash(), receipt.getGasUsed());
-                System.out.println(transactionData);
+                try {
+                    TransactionReceipt receipt = proxy.executeTransferRequest(request);
+                    TransactionData transactionData = creationTransactionData(
+                            receipt.getTransactionHash(), receipt.getBlockHash(), receipt.getGasUsed());
 
-                Balance balance = Balance.newBuilder()
-                        .setContractAddress(contractAddress)
-                        .setAccountId("0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D")
-                        .build();
+                    printFunctionResponse.accept(transactionData);
+                } catch (Exception e) {
+                    log.error("Error when creating function call to Ethereum: ", e);
+                }
 
-                BigInteger totalBalance = proxy.balanceRequest(balance);
-                System.out.println("Total balance: " + totalBalance);
+                Balance balance = createBalance(contractAddress, "0xd20973DEE7602f8AEA53ea2520266Dd7C16FCd4D");
+
+                try {
+                    BigInteger totalBalance = proxy.balanceRequest(balance);
+                    printFunctionResponse.accept("Total balance: " + totalBalance);
+                } catch (Exception e) {
+                    log.error("Error when creating function call to Ethereum: ", e);
+                }
             }
         } catch (NotEnoughFundsException e) {
             log.error("Error: ", e);
         }
+    }
+
+    private Balance createBalance(String contractAddress, String address) {
+        return Balance.newBuilder()
+                .setContractAddress(contractAddress)
+                .setAccountId(address)
+                .build();
     }
 
     private TransactionData creationTransactionData(
@@ -102,6 +118,10 @@ public class User<T extends Proxy> {
     private void deductUserAccountBalance(User user) {
         long originalUserAccountBalance = user.getAmount();
         user.setAmount(originalUserAccountBalance -= 100);
+    }
+
+    private void printFunctionResponse(Object message) {
+        System.out.println(message);
     }
 
     public String getName() {

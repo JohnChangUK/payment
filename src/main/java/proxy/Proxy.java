@@ -16,7 +16,7 @@ public interface Proxy {
 
     Message createContractFromPayment(Payment payment);
 
-    TransactionReceipt executeTransferRequest(TransferRequest transferRequest);
+    TransactionReceipt executeTransferRequest(TransferRequest transferRequest) throws Exception;
 
-    BigInteger balanceRequest(Balance message);
+    BigInteger balanceRequest(Balance message) throws Exception;
 }

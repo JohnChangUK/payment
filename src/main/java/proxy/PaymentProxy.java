@@ -66,37 +66,24 @@ public class PaymentProxy implements Proxy {
                 .build();
     }
 
-    public TransactionReceipt executeTransferRequest(TransferRequest request) {
+    public TransactionReceipt executeTransferRequest(TransferRequest request) throws Exception {
         String contractAddress = request.getContractAddress();
 
         ERC20Contract erc20Contract = ERC20Contract.load(
                 contractAddress, web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT);
 
-        TransactionReceipt transactionReceipt = null;
-        try {
-            transactionReceipt = erc20Contract.transfer(
-                    request.getToAccountId(), new BigInteger(request.getValue().toStringUtf8())).send();
-        } catch (Exception e) {
-            log.error("Could not execute transfer request: " + e);
-        }
 
-        return transactionReceipt;
+        return erc20Contract.transfer(
+                request.getToAccountId(), new BigInteger(request.getValue().toStringUtf8())).send();
     }
 
-    public BigInteger balanceRequest(Balance balance) {
+    public BigInteger balanceRequest(Balance balance) throws Exception {
         String contractAddress = balance.getContractAddress();
 
         ERC20Contract eRC20Contract = ERC20Contract.load(
                 contractAddress, web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT
         );
 
-        BigInteger balancesValue = null;
-        try {
-            balancesValue = eRC20Contract.balances(balance.getAccountId()).send();
-        } catch (Exception e) {
-            log.error("Could not execute balance request: " + e);
-        }
-
-        return balancesValue;
+        return eRC20Contract.balances(balance.getAccountId()).send();
     }
 }
