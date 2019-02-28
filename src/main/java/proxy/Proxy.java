@@ -14,7 +14,7 @@ public interface Proxy {
 
     boolean checkIfUserHasEnoughFunds(User user) throws NotEnoughFundsException;
 
-    Message createContractFromPayment(Payment payment);
+    Message createContractFromPayment(Payment payment) throws Exception;
 
     TransactionReceipt executeTransferRequest(TransferRequest transferRequest) throws Exception;
 

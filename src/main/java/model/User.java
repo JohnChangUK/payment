@@ -71,6 +71,8 @@ public class User<T extends Proxy> {
             }
         } catch (NotEnoughFundsException e) {
             log.error("Error: ", e);
+        } catch (Exception e) {
+            log.error("Could not create contract: ", e);
         }
     }
 

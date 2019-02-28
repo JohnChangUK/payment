@@ -41,19 +41,13 @@ public class PaymentProxy implements Proxy {
         }
     }
 
-    public Message createContractFromPayment(Payment payment) {
-        ERC20Contract erc20Contract = null;
-
-        try {
-            erc20Contract = ERC20Contract.deploy(
-                    web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT,
-                    new BigInteger(String.valueOf(payment.getInitialQuantity().toStringUtf8())),
-                    payment.getName(),
-                    BigInteger.valueOf(payment.getDecimalUnits()), payment.getSymbol()
-            ).send();
-        } catch (Exception e) {
-            log.error("Could not create contract: " + e);
-        }
+    public Message createContractFromPayment(Payment payment) throws Exception {
+        ERC20Contract erc20Contract = ERC20Contract.deploy(
+                web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT,
+                new BigInteger(String.valueOf(payment.getInitialQuantity().toStringUtf8())),
+                payment.getName(),
+                BigInteger.valueOf(payment.getDecimalUnits()), payment.getSymbol()
+        ).send();
 
         TransactionReceipt receipt = erc20Contract.getTransactionReceipt().get();
 
@@ -72,7 +66,6 @@ public class PaymentProxy implements Proxy {
         ERC20Contract erc20Contract = ERC20Contract.load(
                 contractAddress, web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT);
 
-
         return erc20Contract.transfer(
                 request.getToAccountId(), new BigInteger(request.getValue().toStringUtf8())).send();
     }
@@ -81,8 +74,7 @@ public class PaymentProxy implements Proxy {
         String contractAddress = balance.getContractAddress();
 
         ERC20Contract eRC20Contract = ERC20Contract.load(
-                contractAddress, web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT
-        );
+                contractAddress, web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT);
 
         return eRC20Contract.balances(balance.getAccountId()).send();
     }
